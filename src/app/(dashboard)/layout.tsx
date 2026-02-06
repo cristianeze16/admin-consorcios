@@ -13,12 +13,15 @@ export default function DashboardLayout({
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1" />
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-white/40 px-4 backdrop-blur-md dark:bg-white/5">
+            <SidebarTrigger className="-ml-1 cursor-pointer" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <h1 className="text-sm font-medium">Admin Consorcios</h1>
+            <h1 className="text-sm font-medium text-muted-foreground">Admin Consorcios</h1>
           </header>
-          <main className="flex-1 p-6">{children}</main>
+          <main className="relative flex-1 p-6">
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-accent/5" />
+            <div className="relative">{children}</div>
+          </main>
         </SidebarInset>
       </SidebarProvider>
     </Providers>

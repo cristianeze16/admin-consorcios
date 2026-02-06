@@ -80,14 +80,16 @@ export function AppSidebar() {
     .slice(0, 2) ?? "?"
 
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <Building2 className="h-6 w-6" />
-          <span className="text-lg font-bold">ConsorcioApp</span>
+    <Sidebar className="border-r-0">
+      <SidebarHeader className="border-b border-sidebar-border px-6 py-5">
+        <Link href="/dashboard" className="flex items-center gap-3 transition-opacity duration-200 hover:opacity-80">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+            <Building2 className="h-4 w-4 text-sidebar-primary-foreground" />
+          </div>
+          <span className="text-lg font-bold text-sidebar-foreground">ConsorcioApp</span>
         </Link>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-3 py-4">
         {navMain.map((group) => {
           const visibleItems = group.items.filter((item) =>
             hasPermission(role, item.module, "view")
@@ -95,12 +97,18 @@ export function AppSidebar() {
           if (visibleItems.length === 0) return null
           return (
             <SidebarGroup key={group.title}>
-              <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+              <SidebarGroupLabel className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                {group.title}
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visibleItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={pathname === item.url}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === item.url}
+                        className="cursor-pointer rounded-lg transition-all duration-150"
+                      >
                         <Link href={item.url}>
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
@@ -114,22 +122,24 @@ export function AppSidebar() {
           )
         })}
       </SidebarContent>
-      <SidebarFooter className="border-t p-4">
+      <SidebarFooter className="border-t border-sidebar-border p-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-3 px-2 py-1.5">
+            <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent px-3 py-2.5">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                <AvatarFallback className="bg-sidebar-primary text-xs text-sidebar-primary-foreground">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 truncate">
-                <p className="text-sm font-medium truncate">{session?.user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{role}</p>
+                <p className="text-sm font-medium truncate text-sidebar-foreground">{session?.user?.name}</p>
+                <p className="text-xs truncate text-sidebar-foreground/50">{role}</p>
               </div>
             </div>
           </SidebarMenuItem>
           {hasPermission(role, "configuracion", "view") && (
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild className="cursor-pointer rounded-lg transition-all duration-150">
                 <Link href="/configuracion">
                   <Settings className="h-4 w-4" />
                   <span>Configuración</span>
@@ -138,7 +148,10 @@ export function AppSidebar() {
             </SidebarMenuItem>
           )}
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => signOut({ callbackUrl: "/login" })}>
+            <SidebarMenuButton
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="cursor-pointer rounded-lg transition-all duration-150 hover:text-red-400"
+            >
               <LogOut className="h-4 w-4" />
               <span>Cerrar sesión</span>
             </SidebarMenuButton>
