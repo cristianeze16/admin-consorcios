@@ -1,0 +1,336 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// Auth (NextAuth)
+// ==========================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(ADMIN)
+  active        Boolean   @default(true)
+  accounts      Account[]
+  sessions      Session[]
+  consorcios    Consorcio[]
+  propietario   Propietario?
+  inquilino     Inquilino?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==========================================
+// Enums
+// ==========================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  EMPLEADO
+  PROPIETARIO
+  INQUILINO
+}
+
+enum TipoUnidad {
+  DEPARTAMENTO
+  COCHERA
+  LOCAL
+  BAULERA
+}
+
+enum TipoGasto {
+  ORDINARIO
+  EXTRAORDINARIO
+}
+
+enum CategoriaGasto {
+  LIMPIEZA
+  MANTENIMIENTO
+  SEGUROS
+  SERVICIOS
+  SUELDOS
+  IMPUESTOS
+  REPARACIONES
+  ADMINISTRACION
+  OTROS
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  PARCIAL
+  VENCIDO
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TRANSFERENCIA
+  MERCADOPAGO
+  CHEQUE
+  OTRO
+}
+
+enum EstadoReclamo {
+  ABIERTO
+  EN_PROGRESO
+  RESUELTO
+  CERRADO
+}
+
+// ==========================================
+// Core Models
+// ==========================================
+
+model Consorcio {
+  id              String            @id @default(cuid())
+  nombre          String
+  direccion       String
+  localidad       String
+  provincia       String
+  codigoPostal    String?
+  cuit            String            @unique
+  telefono        String?
+  email           String?
+  reglamento      String?
+  administradorId String
+  administrador   User              @relation(fields: [administradorId], references: [id])
+  unidades        UnidadFuncional[]
+  gastos          Gasto[]
+  liquidaciones   Liquidacion[]
+  comunicaciones  Comunicacion[]
+  asambleas       Asamblea[]
+  fondoReserva    Decimal           @default(0) @db.Decimal(12, 2)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model UnidadFuncional {
+  id              String              @id @default(cuid())
+  numero          String
+  piso            String?
+  tipo            TipoUnidad          @default(DEPARTAMENTO)
+  metrosCuadrados Decimal?            @db.Decimal(8, 2)
+  coeficiente     Decimal             @db.Decimal(10, 6)
+  consorcioId     String
+  consorcio       Consorcio           @relation(fields: [consorcioId], references: [id], onDelete: Cascade)
+  propietarioId   String?
+  propietario     Propietario?        @relation(fields: [propietarioId], references: [id])
+  inquilinoId     String?
+  inquilino       Inquilino?          @relation(fields: [inquilinoId], references: [id])
+  detalles        DetalleLiquidacion[]
+  pagos           Pago[]
+  reclamos        Reclamo[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([consorcioId, numero])
+}
+
+model Propietario {
+  id        String            @id @default(cuid())
+  nombre    String
+  apellido  String
+  dni       String            @unique
+  email     String?
+  telefono  String?
+  direccion String?
+  userId    String?           @unique
+  user      User?             @relation(fields: [userId], references: [id])
+  unidades  UnidadFuncional[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model Inquilino {
+  id              String            @id @default(cuid())
+  nombre          String
+  apellido        String
+  dni             String            @unique
+  email           String?
+  telefono        String?
+  fechaInicio     DateTime
+  fechaFin        DateTime?
+  contratoUrl     String?
+  userId          String?           @unique
+  user            User?             @relation(fields: [userId], references: [id])
+  unidades        UnidadFuncional[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+// ==========================================
+// Gastos y Proveedores
+// ==========================================
+
+model Proveedor {
+  id        String   @id @default(cuid())
+  nombre    String
+  cuit      String?  @unique
+  telefono  String?
+  email     String?
+  direccion String?
+  rubro     String?
+  gastos    Gasto[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Gasto {
+  id            String         @id @default(cuid())
+  descripcion   String
+  monto         Decimal        @db.Decimal(12, 2)
+  fecha         DateTime
+  tipo          TipoGasto      @default(ORDINARIO)
+  categoria     CategoriaGasto @default(OTROS)
+  comprobanteUrl String?
+  consorcioId   String
+  consorcio     Consorcio      @relation(fields: [consorcioId], references: [id], onDelete: Cascade)
+  proveedorId   String?
+  proveedor     Proveedor?     @relation(fields: [proveedorId], references: [id])
+  liquidacionId String?
+  liquidacion   Liquidacion?   @relation(fields: [liquidacionId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// ==========================================
+// Liquidaciones y Pagos
+// ==========================================
+
+model Liquidacion {
+  id            String              @id @default(cuid())
+  periodo       String
+  fechaEmision  DateTime            @default(now())
+  fechaVencimiento DateTime
+  totalOrdinario  Decimal           @db.Decimal(12, 2)
+  totalExtraordinario Decimal       @db.Decimal(12, 2) @default(0)
+  totalGeneral  Decimal             @db.Decimal(12, 2)
+  consorcioId   String
+  consorcio     Consorcio           @relation(fields: [consorcioId], references: [id], onDelete: Cascade)
+  gastos        Gasto[]
+  detalles      DetalleLiquidacion[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@unique([consorcioId, periodo])
+}
+
+model DetalleLiquidacion {
+  id              String          @id @default(cuid())
+  montoOrdinario  Decimal         @db.Decimal(12, 2)
+  montoExtraordinario Decimal     @db.Decimal(12, 2) @default(0)
+  montoTotal      Decimal         @db.Decimal(12, 2)
+  interesMora     Decimal         @db.Decimal(12, 2) @default(0)
+  estado          EstadoPago      @default(PENDIENTE)
+  liquidacionId   String
+  liquidacion     Liquidacion     @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
+  unidadId        String
+  unidad          UnidadFuncional @relation(fields: [unidadId], references: [id])
+  pagos           Pago[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([liquidacionId, unidadId])
+}
+
+model Pago {
+  id              String          @id @default(cuid())
+  monto           Decimal         @db.Decimal(12, 2)
+  fecha           DateTime        @default(now())
+  metodoPago      MetodoPago      @default(EFECTIVO)
+  referencia      String?
+  comprobanteUrl  String?
+  unidadId        String
+  unidad          UnidadFuncional @relation(fields: [unidadId], references: [id])
+  detalleId       String?
+  detalle         DetalleLiquidacion? @relation(fields: [detalleId], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+// ==========================================
+// Comunicaciones y Reclamos
+// ==========================================
+
+model Comunicacion {
+  id          String    @id @default(cuid())
+  titulo      String
+  contenido   String
+  fecha       DateTime  @default(now())
+  consorcioId String
+  consorcio   Consorcio @relation(fields: [consorcioId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Reclamo {
+  id          String        @id @default(cuid())
+  titulo      String
+  descripcion String
+  estado      EstadoReclamo @default(ABIERTO)
+  unidadId    String
+  unidad      UnidadFuncional @relation(fields: [unidadId], references: [id])
+  respuesta   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// ==========================================
+// Asambleas
+// ==========================================
+
+model Asamblea {
+  id          String    @id @default(cuid())
+  titulo      String
+  fecha       DateTime
+  ordenDelDia String
+  acta        String?
+  consorcioId String
+  consorcio   Consorcio @relation(fields: [consorcioId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
